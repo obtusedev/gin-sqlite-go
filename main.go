@@ -1,12 +1,18 @@
 package main
 
 import (
+	"gin-sqlite-api/models"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+
+	err := models.ConnectDatabase()
+	checkErr(err)
+
 	r := gin.Default()
 
 	// API v1
@@ -22,17 +28,51 @@ func main() {
 	r.Run(":8080")
 }
 
+func checkErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func getPersons(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "getPersons Called"})
+
+	persons, err := models.GetPersons(10)
+	checkErr(err)
+
+	if persons == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No Records Found"})
+		return
+	} else {
+		c.JSON(http.StatusOK, gin.H{"data": persons})
+	}
 }
 
 func getPersonById(c *gin.Context) {
 	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{"message": "getPersonById " + id + " Called"})
+	person, err := models.GetPersonById(id)
+	checkErr(err)
+
+	if person.FirstName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No Records Found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": person})
 }
 
 func addPerson(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "addPerson Called"})
+	var json models.Person
+
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	success, err := models.AddPerson(json)
+
+	if success {
+		c.JSON(http.StatusOK, gin.H{"message": "Success"})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+	}
 }
 
 func updatePerson(c *gin.Context) {
