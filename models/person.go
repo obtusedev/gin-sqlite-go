@@ -102,3 +102,56 @@ func AddPerson(newPerson Person) (bool, error) {
 	trans.Commit()
 	return true, nil
 }
+
+func UpdatePerson(ourPerson Person, id int) (bool, error) {
+
+	tx, err := DB.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := tx.Prepare("UPDATE people SET first_name = ?, last_name = ?, email = ?, ip_address = ? WHERE Id = ?")
+
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(ourPerson.FirstName, ourPerson.LastName, ourPerson.Email, ourPerson.IpAddress, id)
+
+	if err != nil {
+		return false, err
+	}
+
+	tx.Commit()
+
+	return true, nil
+}
+
+func DeletePerson(personId int) (bool, error) {
+
+	tx, err := DB.Begin()
+
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := DB.Prepare("DELETE from people where id = ?")
+
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(personId)
+
+	if err != nil {
+		return false, err
+	}
+
+	tx.Commit()
+
+	return true, nil
+}
